@@ -19,6 +19,8 @@
     "common-tags": "^1.8.0",
     "dotenv": "^10.0.0",
     "middleware-io": "^2.8.0",
+    "mongodb": "^3.6.9",
+    "typeorm": "^0.2.34",
     "vk-io": "^4.3.0"
   },
   "devDependencies": {

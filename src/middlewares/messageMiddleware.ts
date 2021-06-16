@@ -1,3 +1,4 @@
+import { getMongoRepository } from 'typeorm';
 import axios, { AxiosResponse } from 'axios';
 import { VideoAttachment } from 'vk-io';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
@@ -5,8 +6,10 @@ import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 import { Context } from '@/core';
 import { axiosConfig } from '@/config';
 import { Logger, userVK } from '@/utils';
+import { User } from '@/entities';
 
 const log = new Logger('MessageMW');
+const userRepository = getMongoRepository(User);
 
 export async function messageMiddleware(
   context: Context,
@@ -18,6 +21,19 @@ export async function messageMiddleware(
   const matches: RegExpMatchArray | null = context.text.match(regex);
 
   if (!matches || matches.length < 1) return next();
+
+  let user: User | undefined = await userRepository.findOne({
+    vkId: context.senderId
+  });
+  if (!user) {
+    user = new User({ vkId: context.senderId });
+
+    await userRepository.save(user);
+  }
+
+  if (Date.now() - user.lastSend < 60 * 1000)
+    // eslint-disable-next-line prettier/prettier
+    return context.reply('⏰ Превышен лимит TikTok\'ов, попробуйте снова через минуту :3');
 
   const attachment: VideoAttachment[] = [];
 
@@ -52,10 +68,15 @@ export async function messageMiddleware(
     }
   }
 
-  log.info(`${context.senderId} - ${context.text}`);
+  user.lastSend = Date.now();
+  user.timestamps.push(Date.now());
+
+  await userRepository.save(user);
 
   return context.reply(
-    (!context.isChat ? '😊 Я предназначен для работы в беседе' : '') +
+    (!context.isChat
+      ? '😊 Вообще я предназначен для работы в беседе, но для тебя сделаю исключение :3'
+      : '') +
       (isErrorOccured
         ? '🤬 Некоторые видео не были загружены из-за ошибки'
         : ''),
