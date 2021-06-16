@@ -1,0 +1,38 @@
+{
+  "name": "tiktok-bot",
+  "version": "1.0.0",
+  "main": "./src/index",
+  "repository": "https://github.com/ItzNeviKat/tiktok-bot",
+  "author": "ItzNeviKat",
+  "license": "MIT",
+  "scripts": {
+    "fmt": "eslint --fix ./src",
+    "dev": "ts-node -r tsconfig-paths/register .",
+    "start": "NODE_ENV=production node ./build",
+    "build": "tsc -p tsconfig.json && tscpaths -p tsconfig.json -s ./src -o ./build"
+  },
+  "dependencies": {
+    "@tsed/logger": "^5.15.0",
+    "@vk-io/scenes": "^1.1.0",
+    "@vk-io/session": "^2.1.0",
+    "axios": "^0.21.1",
+    "common-tags": "^1.8.0",
+    "dotenv": "^10.0.0",
+    "middleware-io": "^2.8.0",
+    "vk-io": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/common-tags": "^1.8.0",
+    "@types/node": "^15.12.2",
+    "@typescript-eslint/eslint-plugin": "^4.27.0",
+    "@typescript-eslint/parser": "^4.27.0",
+    "eslint": "^7.28.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "prettier": "^2.3.1",
+    "ts-node": "^10.0.0",
+    "tsconfig-paths": "^3.9.0",
+    "tscpaths": "^0.0.9",
+    "typescript": "^4.3.2"
+  }
+}
