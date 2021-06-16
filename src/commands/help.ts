@@ -5,23 +5,11 @@ import { Command, Context } from '@/core';
 export default new Command({
   trigger: /^!помощь|!начать|начать$/i,
   payload: 'start',
-  description: 'Помощь по всем командам',
+  description: 'Помощь',
   async handler(context: Context) {
-    const commands: string = context.core.commander.commands
-      .filter((command: Command) => command.usage && command.description)
-      .map(
-        (command: Command) => stripIndents`
-        📎 Команда: ${command.usage}
-        📖 Описание: ${command.description}
-      `
-      )
-      .join('\n\n');
-
     return context.send(stripIndents`
-      ℹ️ Помощь по командам бота
-      📌 Справка: [аргумент] - необязательный аргумент, <аргумент> - обязательный аргумент
-      
-      ${commands}
+      🍩 Я умею отвечать на сообщение с ссылкой на TikTok видео по этой ссылке. Предназначен для использования в беседе :3
+      ☺️ Подробнее обо мне и моей настройке - https://vk.com/@tiktokbot1-info
     `);
   }
 });
