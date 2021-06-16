@@ -12,7 +12,7 @@ export async function messageMiddleware(
   context: Context,
   next: NextMiddleware
 ): Promise<NextMiddlewareReturn> {
-  if (!context.text) return next();
+  if (!context.text || context.isFromGroup) return next();
 
   const regex: RegExp = /http(?:s|):\/\/(?:\w+.|)tiktok.com\/[\w\d/@]+/gi;
   const matches: RegExpMatchArray | null = context.text.match(regex);
@@ -51,6 +51,8 @@ export async function messageMiddleware(
       isErrorOccured = true;
     }
   }
+
+  log.info(`${context.senderId} - ${context.text}`);
 
   return context.reply(
     (!context.isChat ? '😊 Я предназначен для работы в беседе' : '') +

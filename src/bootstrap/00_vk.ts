@@ -3,7 +3,11 @@ import { join } from 'path';
 
 import { Logger, vk } from '@/utils';
 import { Commander } from '@/core';
-import { contextMiddleware, messageMiddleware } from '@/middlewares';
+import {
+  contextMiddleware,
+  inviteMiddleware,
+  messageMiddleware
+} from '@/middlewares';
 import { groupId } from '@/config';
 
 const log = new Logger('VK');
@@ -19,6 +23,7 @@ export default async function vkLoader(): Promise<void> {
       groupId
     })
   );
+  vk.updates.use(inviteMiddleware);
   vk.updates.use(messageMiddleware);
   vk.updates.use(commander.middleware);
 
