@@ -22,6 +22,8 @@ export async function messageMiddleware(
 
   if (!matches || matches.length < 1) return next();
 
+  await context.setActivity();
+
   let user: User | undefined = await userRepository.findOne({
     vkId: context.senderId
   });
@@ -31,7 +33,7 @@ export async function messageMiddleware(
     await userRepository.save(user);
   }
 
-  if (Date.now() - user.lastSend < 60 * 1000)
+  if (Date.now() - user.lastSend < 60 * 1000 && user.rights < 1)
     // eslint-disable-next-line prettier/prettier
     return context.reply('⏰ Превышен лимит TikTok\'ов, попробуйте снова через минуту :3');
 
