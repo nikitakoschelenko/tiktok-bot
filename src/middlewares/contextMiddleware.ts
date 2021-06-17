@@ -1,23 +1,18 @@
-import { VK, Context } from 'vk-io';
+import { MessageContext } from 'vk-io';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 
-import { Commander } from '@/core';
+import { AbstractMiddleware, MiddlewareType } from '@/core';
+import { vk } from '@/utils';
+import { groupId } from '@/config';
 
-export function contextMiddleware({
-  commander,
-  vk,
-  groupId
-}: {
-  commander: Commander;
-  vk: VK;
-  groupId: number;
-}) {
-  return (
-    context: Context,
+export class ContextMiddleware implements AbstractMiddleware {
+  type = MiddlewareType.BEFORE;
+
+  middleware(
+    context: MessageContext,
     next: NextMiddleware
-  ): Promise<NextMiddlewareReturn> => {
+  ): NextMiddlewareReturn {
     context.core = {
-      commander,
       vk,
       options: {
         groupId
@@ -25,5 +20,5 @@ export function contextMiddleware({
     };
 
     return next();
-  };
+  }
 }

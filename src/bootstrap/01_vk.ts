@@ -2,30 +2,23 @@ import { VK } from 'vk-io';
 import { join } from 'path';
 
 import { Logger, vk } from '@/utils';
-import { Commander } from '@/core';
-import {
-  contextMiddleware,
-  inviteMiddleware,
-  messageMiddleware
-} from '@/middlewares';
-import { groupId } from '@/config';
+import { Core, MiddlewareType } from '@/core';
 
-const log = new Logger('VK');
+const log: Logger = new Logger('VK');
 
 export default async function vkLoader(): Promise<void> {
-  const commander = new Commander();
-  await commander.loadFromDirectory(join(__dirname, '..', 'commands'));
+  const core: Core = new Core();
 
-  vk.updates.use(
-    contextMiddleware({
-      vk,
-      commander,
-      groupId
-    })
-  );
-  vk.updates.use(inviteMiddleware);
-  vk.updates.use(messageMiddleware);
-  vk.updates.use(commander.middleware);
+  await core.loadCommands(join(__dirname, '..', 'commands'));
+  await core.loadMiddlewares(join(__dirname, '..', 'middlewares'));
+
+  for (const middleware of core.getMiddlewares(MiddlewareType.BEFORE))
+    vk.updates.use(new middleware().middleware);
+
+  vk.updates.use(core.middleware);
+
+  for (const middleware of core.getMiddlewares(MiddlewareType.AFTER))
+    vk.updates.use(new middleware().middleware);
 
   startPolling(vk);
 }

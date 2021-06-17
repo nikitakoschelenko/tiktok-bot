@@ -1,9 +1,13 @@
-import { Command, Context } from '@/core';
+import { MessageContext } from 'vk-io';
+import { AbstractCommand, Context } from '@/core';
+import { Logger } from '@/utils';
 
-export default new Command({
-  trigger: /^!js ((?:.|\s)+)$/i,
-  payload: 'js',
-  async handler(context: Context) {
+const log: Logger = new Logger('JS');
+
+export class JS implements AbstractCommand {
+  trigger = /^!js ((?:.|\s)+)$/i;
+
+  async handler(context: Context): Promise<MessageContext | void> {
     if (context.senderId !== 435214391) return;
 
     try {
@@ -11,7 +15,9 @@ export default new Command({
 
       return context.reply(`✔️ Ответ: ` + JSON.stringify(res));
     } catch (e) {
+      log.error(e);
+
       return context.reply(`❌ Ошибка: ${e.toString()}`);
     }
   }
-});
+}

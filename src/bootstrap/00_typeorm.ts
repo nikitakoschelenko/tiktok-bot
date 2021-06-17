@@ -13,7 +13,7 @@ export const connectionOptions: ConnectionOptions = {
 };
 
 export default async function typeormLoader(): Promise<void> {
-  const log = new Logger('TypeORM');
+  const log: Logger = new Logger('TypeORM');
 
   await createConnection(connectionOptions)
     .then(() => log.info('Подключён к MongoDB'))
