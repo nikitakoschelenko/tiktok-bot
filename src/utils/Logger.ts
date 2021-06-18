@@ -10,7 +10,7 @@ export class Logger extends TsedLogger {
         levels: ['debug', 'info', 'trace'],
         layout: {
           type: 'pattern',
-          pattern: '%[[%d]%] %[[%5.16p]%] %[[%9.16c]%] %m'
+          pattern: '%[[%d{dd/MM/yyyy hh:mm:ss}]%] %[[%9.16c]%] %[%5.16p%] | %m'
         }
       })
       .set('error-log', {

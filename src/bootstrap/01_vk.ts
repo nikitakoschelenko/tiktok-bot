@@ -20,17 +20,16 @@ export default async function vkLoader(): Promise<void> {
   for (const middleware of core.getMiddlewares(MiddlewareType.AFTER))
     vk.updates.use(new middleware().middleware);
 
-  startPolling(vk);
+  await startPolling(vk);
 }
 
-const startPolling = (vk: VK): void => {
+const startPolling = (vk: VK): Promise<void> =>
   vk.updates
     .start()
-    .then(() => log.info('Успешное подключение к VK'))
+    .then(() => void log.info('Успешное подключение к VK'))
     .catch((err) => {
       log.info('VK').error(err);
       log.info('VK').info('Повтор попытки подключения...');
 
-      startPolling(vk);
+      return startPolling(vk);
     });
-};

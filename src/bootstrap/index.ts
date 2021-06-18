@@ -18,7 +18,7 @@ export const load = async (): Promise<void> => {
 
   log.info(`Найдено ${files.length} модулей`);
 
-  for (const filepath of files) {
+  for await (const filepath of files) {
     log.debug(`  - ${filepath.split('/').slice(-1)}...`);
 
     const module: DefaultLoadedModule = await import(filepath);
