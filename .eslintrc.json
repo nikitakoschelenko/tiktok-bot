@@ -19,7 +19,7 @@
   ],
   "rules": {
       "prettier/prettier": [
-          "error",
+          "warn",
           { "singleQuote": true, "trailingComma": "none" }
       ],
 

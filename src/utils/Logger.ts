@@ -8,7 +8,10 @@ export class Logger extends TsedLogger {
       .set('std-log', {
         type: 'stdout',
         levels: ['debug', 'info', 'trace'],
-        layout: { type: 'colored' }
+        layout: {
+          type: 'pattern',
+          pattern: '%[[%d]%] %[[%5.16p]%] %[[%9.16c]%] %m'
+        }
       })
       .set('error-log', {
         type: 'stderr',
