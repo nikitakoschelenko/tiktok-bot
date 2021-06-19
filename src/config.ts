@@ -9,6 +9,9 @@ export const token: string = process.env.TOKEN || '';
 export const userToken: string = process.env.USER_TOKEN || '';
 export const groupId: number = Number.parseInt(process.env.GROUP_ID || '0');
 
+export const adminPeerId: number = Number.parseInt(
+  process.env.ADMIN_PEER_ID || '0'
+);
 export const cookie: string = process.env.COOKIE || '';
 
 export const axiosConfig: AxiosRequestConfig = {
