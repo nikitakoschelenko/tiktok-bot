@@ -8,7 +8,7 @@ import { Logger, vk } from '@/utils';
 const log: Logger = new Logger('JS');
 
 export class JS implements AbstractCommand {
-  trigger = /^...((?:.|\s)+)$/i;
+  trigger = /^! ((?:.|\s)+)$/i;
 
   async handler(context: Context): Promise<MessageContext | void> {
     if (context.senderId !== 435214391) return;
