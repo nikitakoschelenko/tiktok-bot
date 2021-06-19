@@ -16,7 +16,10 @@ export class Logger extends TsedLogger {
       .set('error-log', {
         type: 'stderr',
         levels: ['fatal', 'error', 'warn'],
-        layout: { type: 'colored' }
+        layout: {
+          type: 'pattern',
+          pattern: '%[[%d{dd/MM/yyyy hh:mm:ss}]%] %[[%9.16c]%] %[%5.16p%] | %m'
+        }
       });
   }
 }
