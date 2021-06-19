@@ -5,8 +5,9 @@ import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 
 import { AbstractMiddleware, MiddlewareType } from '@/core';
 import { User } from '@/entities';
-import { Logger, userVK } from '@/utils';
-import { axiosConfig } from '@/config';
+import { Logger, userVK, vk } from '@/utils';
+import { axiosConfig, groupId } from '@/config';
+import { GroupsGetMembersResponse } from 'vk-io/lib/api/schemas/responses';
 
 const log: Logger = new Logger('MessageMW');
 const userRepository = getMongoRepository(User);
@@ -36,7 +37,16 @@ export class MessageMiddleware implements AbstractMiddleware {
       await userRepository.save(user);
     }
 
-    if (Date.now() - user.lastSend < 60 * 1000 && user.rights < 1)
+    const dons: GroupsGetMembersResponse = await vk.api.groups.getMembers({
+      group_id: groupId.toString(),
+      filter: 'donut'
+    });
+
+    const isDon: boolean = dons.items.some(
+      (id: number) => id === context.senderId
+    );
+
+    if (Date.now() - user.lastSend < (isDon ? 30000 : 60000) && user.rights < 1)
       // eslint-disable-next-line prettier/prettier
     return context.reply('⏰ Превышен лимит TikTok\'ов, попробуйте снова через минуту :3');
 
@@ -44,7 +54,9 @@ export class MessageMiddleware implements AbstractMiddleware {
 
     let isErrorOccured: boolean = false;
 
-    for (const url of matches.length > 5 ? matches.slice(0, 4) : matches) {
+    for (const url of isDon || user.rights >= 1
+      ? matches.slice(0, 5)
+      : matches.slice(0, 1)) {
       try {
         const res: AxiosResponse = await axios.get(url, axiosConfig);
         const html: string = res.data;
@@ -80,11 +92,12 @@ export class MessageMiddleware implements AbstractMiddleware {
 
     return context.reply(
       (!context.isChat
-        ? '😊 Вообще я предназначен для работы в беседе, но для тебя сделаю исключение :3'
+        ? '😊 Вообще я предназначен для работы в беседе, но для тебя сделаю исключение'
         : '') +
         (isErrorOccured
           ? '🤬 Некоторые видео не были загружены из-за ошибки'
-          : ''),
+          : '') +
+        (isDon ? '🍩 Спасибо за подписку VK Donut на наше сообщество :3' : ''),
       { attachment }
     );
   }
