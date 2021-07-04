@@ -17,7 +17,6 @@ export class Post implements AbstractCommand {
 
   trigger = /^\/отложить ((?:\s|.)+)$/i;
   rights = 1;
-  payload = 'post';
 
   async handler(context: Context) {
     if (!context.replyMessage || context.replyMessage.senderId !== -groupId)
