@@ -8,6 +8,7 @@ import { User } from '@/entities';
 import { Logger, userVK, vk } from '@/utils';
 import { axiosConfig, groupId } from '@/config';
 import { GroupsGetMembersResponse } from 'vk-io/lib/api/schemas/responses';
+import { stripIndents } from 'common-tags';
 
 const log: Logger = new Logger('MessageMW');
 const userRepository = getMongoRepository(User);
@@ -44,6 +45,10 @@ export class MessageMiddleware implements AbstractMiddleware {
 
       await userRepository.save(user);
     }
+    if (user.rights < 0)
+      return context.reply(stripIndents`
+        ❗️ Пользователь @id${user.vkId} забанен
+      `);
 
     const dons: GroupsGetMembersResponse = await vk.api.groups.getMembers({
       group_id: groupId.toString(),
