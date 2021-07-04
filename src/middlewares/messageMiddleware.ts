@@ -121,7 +121,10 @@ export class MessageMiddleware implements AbstractMiddleware {
         (isErrorOccured
           ? '🤬 Некоторые видео не были загружены из-за ошибки\n'
           : '') +
-        (isDon ? '🍩 Спасибо за подписку VK Donut на наше сообщество :3' : ''),
+        (isDon
+          ? '🍩 Спасибо за подписку VK Donut на наше сообщество :3\n'
+          : '') +
+        `\n#tiktok #user${context.senderId}`,
       { attachment }
     );
   }
