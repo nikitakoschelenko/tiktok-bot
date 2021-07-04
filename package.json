@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@tsed/logger": "^5.15.0",
-    "@vk-io/scenes": "^1.1.0",
     "@vk-io/session": "^2.1.0",
     "axios": "^0.21.1",
     "common-tags": "^1.8.0",
@@ -21,7 +20,8 @@
     "middleware-io": "^2.8.0",
     "mongodb": "^3.6.9",
     "typeorm": "^0.2.34",
-    "vk-io": "^4.3.0"
+    "vk-io": "^4.3.0",
+    "vk-io-question": "^3.1.1"
   },
   "devDependencies": {
     "@types/common-tags": "^1.8.0",

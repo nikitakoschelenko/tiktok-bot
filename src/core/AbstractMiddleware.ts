@@ -1,4 +1,4 @@
-import { Context } from '@/core';
+import { MessageContext } from 'vk-io';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 
 export enum MiddlewareType {
@@ -14,7 +14,7 @@ export abstract class AbstractMiddleware {
   }
 
   public abstract middleware(
-    context: Context,
+    context: MessageContext,
     next: NextMiddleware
   ): Promise<NextMiddlewareReturn> | NextMiddlewareReturn | any;
 }

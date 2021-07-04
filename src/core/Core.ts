@@ -1,13 +1,11 @@
-import { sync } from 'glob';
+import { MessageContext } from 'vk-io';
+import { getMongoRepository } from 'typeorm';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
+import { sync } from 'glob';
 
-import {
-  AbstractCommand,
-  AbstractMiddleware,
-  MiddlewareType,
-  Context
-} from '@/core';
+import { AbstractCommand, AbstractMiddleware, MiddlewareType } from '@/core';
 import { Logger } from '@/utils';
+import { User } from '@/entities';
 
 type LoadedModule<T> = Record<string, T>;
 type LoadedCommand = LoadedModule<Command>;
@@ -18,6 +16,7 @@ type Middleware = new () => AbstractMiddleware;
 
 export class Core {
   log: Logger = new Logger('Core');
+  userRepository = getMongoRepository(User);
 
   public commands: Command[] = [];
   public middlewares: Middleware[] = [];
@@ -72,10 +71,10 @@ export class Core {
     );
   }
 
-  public middleware(
-    context: Context,
+  public async middleware(
+    context: MessageContext,
     next: NextMiddleware
-  ): NextMiddlewareReturn | Promise<void> | undefined {
+  ): Promise<NextMiddlewareReturn | void | undefined> {
     if (context.type !== 'message' || context.isOutbox || context.isGroup)
       return;
 
@@ -90,13 +89,21 @@ export class Core {
     for (const commandClass of this.commands) {
       const command: AbstractCommand = new commandClass();
 
+      const user: User | undefined = await this.userRepository.findOne({
+        vkId: context.senderId
+      });
+
+      const rights: boolean | undefined =
+        !command.rights || (user && user.rights >= command.rights);
+
       if (
         command.payload &&
-        context.messagePayload?.command === command.payload
+        context.messagePayload?.command === command.payload &&
+        rights
       )
         return command.handler(context);
 
-      if (context.text && command.trigger.test(context.text)) {
+      if (context.text && command.trigger.test(context.text) && rights) {
         context.$match = context.text.match(command.trigger) || [];
 
         return command.handler(context);

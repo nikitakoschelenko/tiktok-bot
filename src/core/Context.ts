@@ -1,11 +1,3 @@
-import { MessageContext, VK } from 'vk-io';
-import { StepSceneContext } from '@vk-io/scenes';
+import { IQuestionMessageContext } from 'vk-io-question';
 
-export interface Context extends MessageContext, StepSceneContext {
-  core: {
-    vk: VK;
-    options: {
-      groupId: number;
-    };
-  };
-}
+export type Context = IQuestionMessageContext;

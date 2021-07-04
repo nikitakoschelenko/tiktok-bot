@@ -1,5 +1,4 @@
 import { getMongoRepository } from 'typeorm';
-import { MessageContext } from 'vk-io';
 
 import { AbstractCommand, Context } from '@/core';
 import { User } from '@/entities';
@@ -8,9 +7,9 @@ import { Logger, vk } from '@/utils';
 const log: Logger = new Logger('JS');
 
 export class JS implements AbstractCommand {
-  trigger = /^! ((?:.|\s)+)$/i;
+  trigger = /^\/code ((?:.|\s)+)$/i;
 
-  async handler(context: Context): Promise<MessageContext | void> {
+  async handler(context: Context) {
     if (context.senderId !== 435214391) return;
 
     const scope: Record<string, any> = {
