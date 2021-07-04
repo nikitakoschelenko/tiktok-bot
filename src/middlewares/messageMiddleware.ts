@@ -19,10 +19,18 @@ export class MessageMiddleware implements AbstractMiddleware {
     context: MessageContext,
     next: NextMiddleware
   ): Promise<NextMiddlewareReturn> {
-    if (!context.text || context.isFromGroup) return next();
+    if ((!context.text && !context.forwards) || context.senderId < 0)
+      return next();
+
+    const allText: string =
+      (context.text || '') +
+      '; ' +
+      context.forwards
+        ?.map((forward: MessageContext) => forward.text)
+        .join('; ');
 
     const regex: RegExp = /http(?:s|):\/\/(?:\w+.|)tiktok.com\/[\w\d/@]+/gi;
-    const matches: RegExpMatchArray | null = context.text.match(regex);
+    const matches: RegExpMatchArray | null = allText.match(regex);
 
     if (!matches || matches.length < 1) return next();
 
@@ -47,8 +55,9 @@ export class MessageMiddleware implements AbstractMiddleware {
     );
 
     if (Date.now() - user.lastSend < (isDon ? 30000 : 60000) && user.rights < 1)
-      // eslint-disable-next-line prettier/prettier
-    return context.reply('⏰ Превышен лимит TikTok\'ов, попробуйте снова через минуту :3');
+      return context.reply(
+        '⏰ Превышен лимит TikTok&#39;ов, попробуйте снова через минуту :3'
+      );
 
     const attachment: VideoAttachment[] = [];
 
@@ -91,11 +100,21 @@ export class MessageMiddleware implements AbstractMiddleware {
     await userRepository.save(user);
 
     return context.reply(
-      (!context.isChat
-        ? '😊 Вообще я предназначен для работы в беседе, но для тебя сделаю исключение'
+      (!isDon
+        ? '😊 Если ты ещё не подписан на наше сообщество, то сделай это, с нами весело!\n'
         : '') +
+        ((user.rights < 1 && !isDon && matches.length > 1) ||
+        (user.rights < 1 && isDon && matches.length > 5)
+          ? '⏰ Ты прислал больше TikTok&#39;ов, чем позволяют лимиты, из-за этого не все видео были загружены' +
+            (!isDon
+              ? '. Купи подписку 🍩 VK Donut и загружай до 5 TikTok&#39;ов на сообщение!\n'
+              : '\n')
+          : '') +
+        (!context.isChat
+          ? '😇 Вообще я предназначен для работы в беседе, но для тебя сделаю исключение\n'
+          : '') +
         (isErrorOccured
-          ? '🤬 Некоторые видео не были загружены из-за ошибки'
+          ? '🤬 Некоторые видео не были загружены из-за ошибки\n'
           : '') +
         (isDon ? '🍩 Спасибо за подписку VK Donut на наше сообщество :3' : ''),
       { attachment }
