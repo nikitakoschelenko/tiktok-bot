@@ -7,7 +7,7 @@ export class Help implements AbstractCommand {
   payload = 'start';
 
   async handler(context: Context) {
-  if (context.isChat() && !context.text.match(/^\/помощь/i))
+  if (context.isChat() && !context!.text!.match(/^\/помощь/i))
     return ;
 
     return context.send(stripIndents`
