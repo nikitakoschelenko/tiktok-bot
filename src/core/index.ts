@@ -1,4 +1,4 @@
-export * from './AbstractCommand';
-export * from './AbstractMiddleware';
-export * from './Context';
+export * from './Command';
+export * from './Middleware';
 export * from './Core';
+export * from './Context';

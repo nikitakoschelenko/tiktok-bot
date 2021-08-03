@@ -2,18 +2,20 @@ import { MessageContext } from 'vk-io';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 import { stripIndents } from 'common-tags';
 
-import { AbstractMiddleware, MiddlewareType } from '@/core';
+import { Middleware } from '@/core';
 import { adminPeerId, groupId } from '@/config';
 import { vk } from '@/utils';
 import { UsersGetResponse } from 'vk-io/lib/api/schemas/responses';
 
-export class InviteMiddleware implements AbstractMiddleware {
-  type = MiddlewareType.BEFORE;
-
-  async middleware(
+/**
+ * Не знаю, как накосячил Negezor, но updates.on('chat_invite_user', ...) не работает.
+ * Выкручиваемся как можем
+ */
+export const inviteMiddleware = new Middleware({
+  middleware: async (
     context: MessageContext,
     next: NextMiddleware
-  ): Promise<MessageContext | NextMiddlewareReturn> {
+  ): Promise<MessageContext | NextMiddlewareReturn> => {
     if (
       context.eventType !== 'chat_invite_user' ||
       context.eventMemberId !== -groupId
@@ -25,7 +27,8 @@ export class InviteMiddleware implements AbstractMiddleware {
         😊 Спасибо за приглашение в эту беседу!
         ⚙️ Чтобы я мог работать без упоминаний, выдайте мне право на чтение переписки или назначьте администратором.
   
-        📚 Подробнее обо мне и моей настройке - https://vk.com/@tiktokbot-info`
+        📚 Подробнее обо мне и моей настройке - https://vk.com/@tiktokbot-info
+      `
     );
 
     const [user]: UsersGetResponse = await vk.api.users.get({
@@ -43,4 +46,4 @@ export class InviteMiddleware implements AbstractMiddleware {
       random_id: 0
     });
   }
-}
+});

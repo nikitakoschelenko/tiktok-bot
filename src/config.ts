@@ -9,6 +9,10 @@ export const token: string = process.env.TOKEN || '';
 export const userToken: string = process.env.USER_TOKEN || '';
 export const groupId: number = Number.parseInt(process.env.GROUP_ID || '0');
 
+export const canUseJS: number[] = (process.env.CAN_USE_JS || '')
+  .split(',')
+  .map((id: string) => Number.parseInt(id))
+  .filter((id: number) => !Number.isNaN(id));
 export const adminPeerId: number = Number.parseInt(
   process.env.ADMIN_PEER_ID || '0'
 );

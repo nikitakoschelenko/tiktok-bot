@@ -1,28 +1,28 @@
+import { getMongoRepository, MongoRepository } from 'typeorm';
 import {
   IResolvedOwnerResource,
   IResolvedTargetResource,
   resolveResource
 } from 'vk-io';
-import { getMongoRepository } from 'typeorm';
-import { stripIndents } from 'common-tags';
 
-import { AbstractCommand, Context } from '@/core';
+import { Command, Context } from '@/core';
 import { vk } from '@/utils';
 import { User } from '@/entities';
 
-export class Ban implements AbstractCommand {
-  userRepository = getMongoRepository(User);
+const userRepository: MongoRepository<User> = getMongoRepository(User);
 
-  trigger = /^\/(раз|)бан( .*|)$/i;
-  rights = 1;
+export const banCommand = new Command({
+  trigger: /^\/(раз|)бан( .*|)$/i,
+  handler: async (context: Context) => {
+    // Недостаточно прав - игнорим
+    if (context.user.rights < 1) return;
 
-  async handler(context: Context) {
     let vkId: number;
 
     const notFound = () =>
-      context.send(stripIndents`
-        ❗️ Указанный пользователь (${context.$match[2]}) не найден
-      `);
+      context.send(
+        '❗️ Указанный пользователь (${context.$match[2]}) не найден'
+      );
 
     if (context.$match[2]) {
       const resource:
@@ -39,29 +39,16 @@ export class Ban implements AbstractCommand {
       vkId = context.replyMessage.senderId;
     } else return notFound();
 
-    let user: User | undefined = await this.userRepository.findOne({
-      vkId
-    });
-    if (!user) {
-      user = new User({ vkId: context.senderId });
-
-      await this.userRepository.save(user);
-    }
-
     if (context.$match[1] === 'раз') {
-      user.rights = 1;
-      await this.userRepository.save(user);
+      context.user.rights = 1;
+      await userRepository.save(context.user);
 
-      return context.send(stripIndents`
-        🤙 Успешно разбанил пользователя @id${vkId}
-      `);
+      return context.send(`🤙 Успешно разбанил пользователя @id${vkId}`);
     } else {
-      user.rights = -1;
-      await this.userRepository.save(user);
+      context.user.rights = -1;
+      await userRepository.save(context.user);
 
-      return context.send(stripIndents`
-        🤬 Успешно забанил пользователя @id${vkId}
-      `);
+      return context.send(`🤬 Успешно забанил пользователя @id${vkId}`);
     }
   }
-}
+});

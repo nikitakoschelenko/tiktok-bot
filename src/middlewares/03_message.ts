@@ -1,25 +1,22 @@
-import { getMongoRepository } from 'typeorm';
+import { getMongoRepository, MongoRepository } from 'typeorm';
 import axios, { AxiosResponse } from 'axios';
 import { MessageContext, VideoAttachment } from 'vk-io';
+import { GroupsGetMembersResponse } from 'vk-io/lib/api/schemas/responses';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 
-import { AbstractMiddleware, MiddlewareType } from '@/core';
+import { Middleware } from '@/core';
 import { User } from '@/entities';
 import { Logger, userVK, vk } from '@/utils';
 import { axiosConfig, groupId } from '@/config';
-import { GroupsGetMembersResponse } from 'vk-io/lib/api/schemas/responses';
-import { stripIndents } from 'common-tags';
 
+const userRepository: MongoRepository<User> = getMongoRepository(User);
 const log: Logger = new Logger('MessageMW');
-const userRepository = getMongoRepository(User);
 
-export class MessageMiddleware implements AbstractMiddleware {
-  type = MiddlewareType.BEFORE;
-
-  async middleware(
+export const messageMiddleware = new Middleware({
+  middleware: async (
     context: MessageContext,
     next: NextMiddleware
-  ): Promise<NextMiddlewareReturn> {
+  ): Promise<NextMiddlewareReturn> => {
     if ((!context.text && !context.forwards) || context.senderId < 0)
       return next();
 
@@ -37,18 +34,8 @@ export class MessageMiddleware implements AbstractMiddleware {
 
     await context.setActivity();
 
-    let user: User | undefined = await userRepository.findOne({
-      vkId: context.senderId
-    });
-    if (!user) {
-      user = new User({ vkId: context.senderId });
-
-      await userRepository.save(user);
-    }
-    if (user.rights < 0)
-      return context.reply(stripIndents`
-        ❗️ Пользователь @id${user.vkId} забанен
-      `);
+    // В бане - игнорим
+    if (context.user.rights < 0) return;
 
     const dons: GroupsGetMembersResponse = await vk.api.groups.getMembers({
       group_id: groupId.toString(),
@@ -59,7 +46,10 @@ export class MessageMiddleware implements AbstractMiddleware {
       (id: number) => id === context.senderId
     );
 
-    if (Date.now() - user.lastSend < (isDon ? 30000 : 60000) && user.rights < 1)
+    if (
+      Date.now() - context.user.lastSend < (isDon ? 30000 : 60000) &&
+      context.user.rights < 1
+    )
       return context.reply(
         '⏰ Превышен лимит TikTok&#39;ов, попробуйте снова через минуту :3'
       );
@@ -68,7 +58,7 @@ export class MessageMiddleware implements AbstractMiddleware {
 
     let isErrorOccured: boolean = false;
 
-    for (const url of isDon || user.rights >= 1
+    for (const url of isDon || context.user.rights >= 1
       ? matches.slice(0, 5)
       : matches.slice(0, 1)) {
       try {
@@ -99,22 +89,20 @@ export class MessageMiddleware implements AbstractMiddleware {
       }
     }
 
-    user.lastSend = Date.now();
-    user.timestamps.push(Date.now());
+    context.user.lastSend = Date.now();
+    context.user.timestamps.push(Date.now());
 
-    await userRepository.save(user);
+    await userRepository.save(context.user);
 
+    // Дико, но работает
     return context.reply(
-      (!isDon
-        ? '😊 Если ты ещё не подписан на наше сообщество, то сделай это, с нами весело!\n'
+      ((context.user.rights < 1 && !isDon && matches.length > 1) ||
+      (context.user.rights < 1 && isDon && matches.length > 5)
+        ? '⏰ Ты прислал больше TikTok&#39;ов, чем позволяют лимиты, из-за этого не все видео были загружены' +
+          (!isDon
+            ? '. Купи подписку 🍩 VK Donut и загружай до 5 TikTok&#39;ов на сообщение!\n'
+            : '\n')
         : '') +
-        ((user.rights < 1 && !isDon && matches.length > 1) ||
-        (user.rights < 1 && isDon && matches.length > 5)
-          ? '⏰ Ты прислал больше TikTok&#39;ов, чем позволяют лимиты, из-за этого не все видео были загружены' +
-            (!isDon
-              ? '. Купи подписку 🍩 VK Donut и загружай до 5 TikTok&#39;ов на сообщение!\n'
-              : '\n')
-          : '') +
         (!context.isChat
           ? '😇 Вообще я предназначен для работы в беседе, но для тебя сделаю исключение\n'
           : '') +
@@ -128,4 +116,4 @@ export class MessageMiddleware implements AbstractMiddleware {
       { attachment }
     );
   }
-}
+});

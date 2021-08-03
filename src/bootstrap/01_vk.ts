@@ -1,35 +1,20 @@
-import { VK } from 'vk-io';
 import { join } from 'path';
 
 import { Logger, vk } from '@/utils';
-import { Core, MiddlewareType } from '@/core';
+import { Core } from '@/core';
 
 const log: Logger = new Logger('VK');
 
 export default async function vkLoader(): Promise<void> {
-  const core: Core = new Core();
+  const core: Core = new Core(vk, {
+    middlewares: join(__dirname, '..', 'middlewares'),
+    commands: join(__dirname, '..', 'commands')
+  });
 
-  await core.loadCommands(join(__dirname, '..', 'commands'));
-  await core.loadMiddlewares(join(__dirname, '..', 'middlewares'));
+  await core.load();
 
-  for (const middleware of core.getMiddlewares(MiddlewareType.BEFORE))
-    vk.updates.use(new middleware().middleware);
-
-  vk.updates.use(core.middleware);
-
-  for (const middleware of core.getMiddlewares(MiddlewareType.AFTER))
-    vk.updates.use(new middleware().middleware);
-
-  await startPolling(vk);
-}
-
-const startPolling = (vk: VK): Promise<void> =>
-  vk.updates
+  return core
     .start()
-    .then(() => void log.info('Успешное подключение к VK'))
-    .catch((err) => {
-      log.info('VK').error(err);
-      log.info('VK').info('Повтор попытки подключения...');
-
-      return startPolling(vk);
-    });
+    .then(() => void log.info(`Успешное подключение к VK`))
+    .catch((err: string) => void log.error(err));
+}
