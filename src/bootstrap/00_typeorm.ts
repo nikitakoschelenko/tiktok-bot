@@ -17,5 +17,5 @@ export default async function typeormLoader(): Promise<void> {
 
   await createConnection(connectionOptions)
     .then(() => log.info('Подключён к MongoDB'))
-    .catch(log.error);
+    .catch((e: any) => log.error(e));
 }
