@@ -6,7 +6,7 @@ import {
 } from 'vk-io';
 
 import { Command, Context } from '@/core';
-import { vk } from '@/utils';
+import { isVK, vk } from '@/utils';
 import { User } from '@/entities';
 
 const userRepository: MongoRepository<User> = getMongoRepository(User);
@@ -17,7 +17,7 @@ export const banCommand = new Command({
     // Недостаточно прав - игнорим
     if (context.user.rights < 1) return;
 
-    let vkId: number;
+    let id: number;
 
     const notFound = () =>
       context.send(
@@ -34,21 +34,30 @@ export const banCommand = new Command({
       });
       if (!resource || resource.type !== 'user') return notFound();
 
-      vkId = resource.id;
-    } else if (context.replyMessage) {
-      vkId = context.replyMessage.senderId;
+      id = resource.id;
+    } else if (context.replyMessage && isVK(context)) {
+      id = context.replyMessage.senderId;
+    } else if (context.replyMessage && context.replyMessage.from?.id) {
+      id = context.replyMessage.from.id;
     } else return notFound();
+
+    const user: string = isVK(context)
+      ? `@id${context.senderId}`
+      : `[@id${id}](tg://user?id=${id})`;
+    const options: Record<string, any> = isVK(context)
+      ? {}
+      : { parse_mode: 'markdown' };
 
     if (context.$match[1] === 'раз') {
       context.user.rights = 1;
       await userRepository.save(context.user);
 
-      return context.send(`🤙 Успешно разбанил пользователя @id${vkId}`);
+      return context.send(`🤙 Успешно разбанил пользователя ${user}`, options);
     } else {
       context.user.rights = -1;
       await userRepository.save(context.user);
 
-      return context.send(`🤬 Успешно забанил пользователя @id${vkId}`);
+      return context.send(`🤬 Успешно забанил пользователя ${user}`, options);
     }
   }
 });

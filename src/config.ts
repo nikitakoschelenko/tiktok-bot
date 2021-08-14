@@ -5,16 +5,20 @@ dotenv.config();
 
 export const databaseURI: string = process.env.MONGO_URL || '';
 
-export const token: string = process.env.TOKEN || '';
-export const userToken: string = process.env.USER_TOKEN || '';
-export const groupId: number = Number.parseInt(process.env.GROUP_ID || '0');
+export const vkToken: string = process.env.VK_TOKEN || '';
+export const vkUserToken: string = process.env.VK_USER_TOKEN || '';
+export const vkGroupId: number = Number.parseInt(
+  process.env.VK_GROUP_ID || '0'
+);
+export const telegramToken: string = process.env.TELEGRAM_TOKEN || '';
 
 export const canUseJS: number[] = (process.env.CAN_USE_JS || '')
   .split(',')
   .map((id: string) => Number.parseInt(id))
   .filter((id: number) => !Number.isNaN(id));
-export const adminPeerId: number = Number.parseInt(
-  process.env.ADMIN_PEER_ID || '0'
+export const vkPeerId: number = Number.parseInt(process.env.VK_PEER_ID || '0');
+export const telegramChatId: number = Number.parseInt(
+  process.env.TELEGRAM_CHAT_ID || '0'
 );
 export const cookie: string = process.env.COOKIE || '';
 

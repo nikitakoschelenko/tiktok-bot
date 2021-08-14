@@ -2,15 +2,17 @@ import { Attachment, ExternalAttachment, VideoAttachment } from 'vk-io';
 import { WallPostResponse } from 'vk-io/lib/api/schemas/responses';
 
 import { Command, Context } from '@/core';
-import { groupId } from '@/config';
-import { Logger, userVK } from '@/utils';
+import { vkGroupId } from '@/config';
+import { Logger, userVK, isVK } from '@/utils';
 
 const log: Logger = new Logger('Post');
 
 export const postCommand = new Command({
   trigger: /^\/отложить ((?:\s|.)+)$/i,
   handler: async (context: Context) => {
-    if (!context.replyMessage || context.replyMessage.senderId !== -groupId)
+    if (!isVK(context)) return;
+
+    if (!context.replyMessage || context.replyMessage.senderId !== -vkGroupId)
       return context.reply(
         '❗️ Ответьте на сообщение бота с видео, чтобы отложить пост в группу'
       );
@@ -28,14 +30,14 @@ export const postCommand = new Command({
 
     try {
       const response: WallPostResponse = await userVK.api.wall.post({
-        owner_id: -groupId,
+        owner_id: -vkGroupId,
         message: context.$match[1],
         attachments: foundVideo.toString(),
         publish_date: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
       });
 
       return context.reply(
-        `🤙 Отложил запись - https://vk.com/public${groupId}?w=wall-${groupId}_${response.post_id}`
+        `🤙 Отложил запись - https://vk.com/public${vkGroupId}?w=wall-${vkGroupId}_${response.post_id}`
       );
     } catch (e) {
       log.error(e);

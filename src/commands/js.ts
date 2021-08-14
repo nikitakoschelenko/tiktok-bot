@@ -11,7 +11,7 @@ export const jsCommand = new Command({
   trigger: /^\/code ((?:.|\s)+)$/i,
   handler: async (context: Context) => {
     // Недостаточно прав - игнорим
-    if (!canUseJS.includes(context.senderId)) return;
+    if (!context.senderId || !canUseJS.includes(context.senderId)) return;
 
     // Контекст для выполнения
     const scope: Record<string, any> = {

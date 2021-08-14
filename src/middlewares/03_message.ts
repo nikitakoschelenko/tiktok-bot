@@ -4,47 +4,53 @@ import { MessageContext, VideoAttachment } from 'vk-io';
 import { GroupsGetMembersResponse } from 'vk-io/lib/api/schemas/responses';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 
-import { Middleware } from '@/core';
+import { Context, Middleware } from '@/core';
 import { User } from '@/entities';
-import { Logger, userVK, vk } from '@/utils';
-import { axiosConfig, groupId } from '@/config';
+import { isVK, Logger, userVK, vk } from '@/utils';
+import { axiosConfig, vkGroupId } from '@/config';
 
 const userRepository: MongoRepository<User> = getMongoRepository(User);
 const log: Logger = new Logger('MessageMW');
 
 export const messageMiddleware = new Middleware({
   middleware: async (
-    context: MessageContext,
+    context: Context,
     next: NextMiddleware
   ): Promise<NextMiddlewareReturn> => {
-    if ((!context.text && !context.forwards) || context.senderId < 0)
+    if ((!context.text && !context.forwards) || !context.senderId)
       return next();
 
     const allText: string =
-      (context.text || '') +
+      (context.text ?? '') +
       '; ' +
-      context.forwards
-        ?.map((forward: MessageContext) => forward.text)
-        .join('; ');
+      (isVK(context) && context.forwards
+        ? context.forwards
+            .map((forward: MessageContext) => forward.text)
+            .join('; ')
+        : '');
 
     const regex: RegExp = /http(?:s|):\/\/(?:\w+.|)tiktok.com\/[\w\d/@]+/gi;
     const matches: RegExpMatchArray | null = allText.match(regex);
 
     if (!matches || matches.length < 1) return next();
 
-    await context.setActivity();
+    if (isVK(context)) await context.setActivity();
+    else await context.sendChatAction('upload_video');
 
     // В бане - игнорим
     if (context.user.rights < 0) return;
 
-    const dons: GroupsGetMembersResponse = await vk.api.groups.getMembers({
-      group_id: groupId.toString(),
-      filter: 'donut'
-    });
+    let isDon: boolean;
 
-    const isDon: boolean = dons.items.some(
-      (id: number) => id === context.senderId
-    );
+    if (isVK(context)) {
+      const dons: GroupsGetMembersResponse = await vk.api.groups.getMembers({
+        group_id: vkGroupId.toString(),
+        filter: 'donut'
+      });
+
+      isDon = dons.items.some((id: number) => id === context.senderId);
+    } else isDon = false;
+    // TODO: Доны в Телеграме
 
     if (
       Date.now() - context.user.lastSend < (isDon ? 30000 : 60000) &&
@@ -74,14 +80,18 @@ export const messageMiddleware = new Middleware({
           ...axiosConfig,
           responseType: 'arraybuffer'
         });
-        const videoAttachment: VideoAttachment = await userVK.upload.video({
-          source: {
-            value: video.data
-          },
-          name: 'TikTok - ' + url
-        });
 
-        attachment.push(videoAttachment);
+        if (isVK(context)) {
+          const videoAttachment: VideoAttachment = await userVK.upload.video({
+            source: {
+              value: video.data
+            },
+            name: 'TikTok - ' + url
+          });
+
+          attachment.push(videoAttachment);
+        } else context.sendVideo(video.data);
+        // TODO: Здесь ошибка, так как боты могут отправлять видео размера до 50Мб. Для тиктоков это очень мало
       } catch (e) {
         log.error(e);
 
@@ -113,7 +123,7 @@ export const messageMiddleware = new Middleware({
           ? '🍩 Спасибо за подписку VK Donut на наше сообщество :3\n'
           : '') +
         `\n#tiktok #user${context.senderId}`,
-      { attachment }
+      isVK(context) ? { attachment } : {}
     );
   }
 });

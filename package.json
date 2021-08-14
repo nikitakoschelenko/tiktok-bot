@@ -12,6 +12,8 @@
     "build": "tsc -p tsconfig.json && tscpaths -p tsconfig.json -s ./src -o ./build"
   },
   "dependencies": {
+    "@puregram/hear": "^2.0.2-rc.1",
+    "@puregram/session": "^2.0.1-rc.1",
     "@tsed/logger": "^5.15.0",
     "@vk-io/hear": "^1.1.0",
     "@vk-io/session": "^2.1.0",
@@ -20,6 +22,7 @@
     "dotenv": "^10.0.0",
     "middleware-io": "^2.8.0",
     "mongodb": "^3.6.9",
+    "puregram": "^2.2.0",
     "typeorm": "^0.2.34",
     "vk-io": "^4.3.0"
   },

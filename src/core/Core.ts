@@ -1,33 +1,45 @@
-import { VK } from 'vk-io';
-import { HearManager } from '@vk-io/hear';
-import { SessionManager } from '@vk-io/session';
+import { VK, MessageContext as VKMessageContext } from 'vk-io';
+import { Telegram, MessageContext as TelegramMessageContext } from 'puregram';
+import { HearManager as VKHearManager } from '@vk-io/hear';
+import { SessionManager as VKSessionManager } from '@vk-io/session';
+import { HearManager as TelegramHearManager } from '@puregram/hear';
+import { SessionManager as TelegramSessionManager } from '@puregram/session';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 import { sync } from 'glob';
 
-import { Context, Command, Middleware } from '@/core';
+import {
+  VKContext,
+  TelegramContext,
+  Context,
+  Command,
+  Middleware
+} from '@/core';
 import { Logger } from '@/utils';
 
 type LoadedModule<T> = Record<string, T>;
-type Options = {
-  middlewares: string;
-  commands: string;
-};
 
 export class Core {
   private log: Logger = new Logger('Core');
 
   public vk: VK;
-  public options: Options;
+  public telegram: Telegram;
 
-  public hearManager: HearManager<Context> = new HearManager();
-  public sessionManager: SessionManager<Context> = new SessionManager();
+  public vkHearManager: VKHearManager<VKMessageContext> = new VKHearManager();
+  public vkSessionManager: VKSessionManager<VKMessageContext> =
+    new VKSessionManager();
+  public telegramHearManager: TelegramHearManager<TelegramMessageContext> =
+    new TelegramHearManager();
+  public telegramSessionManager: TelegramSessionManager<TelegramMessageContext> =
+    new TelegramSessionManager();
+
+  public middlewaresPath: string;
+  public commandsPath: string;
 
   public commands: Command[] = [];
   public middlewares: Middleware[] = [];
 
-  constructor(vk: VK, options: Options) {
-    this.vk = vk;
-    this.options = options;
+  constructor(options: Partial<Core>) {
+    Object.assign(this, options);
   }
 
   private async loadFromDir<T>(path: string): Promise<T[]> {
@@ -63,7 +75,7 @@ export class Core {
     this.log.info('Загрузка обработчиков из директории...');
 
     for (const module of await this.loadFromDir<LoadedModule<Middleware>>(
-      this.options.middlewares
+      this.middlewaresPath
     ))
       this.middlewares = this.middlewares.concat(Object.values(module));
 
@@ -74,7 +86,7 @@ export class Core {
     this.log.info('Загрузка команд из директории...');
 
     for (const module of await this.loadFromDir<LoadedModule<Command>>(
-      this.options.commands
+      this.commandsPath
     ))
       this.commands = this.commands.concat(Object.values(module));
 
@@ -86,26 +98,52 @@ export class Core {
     return this.loadMiddlewares().then(() => this.loadCommands());
   }
 
-  public start(): Promise<void> {
+  public startVK(): Promise<void> {
     this.vk.updates.on(
       'message',
-      (context: Context, next: NextMiddleware): NextMiddlewareReturn => {
+      (context: VKContext, next: NextMiddleware): NextMiddlewareReturn => {
         context.core = this;
 
         return next();
       }
     );
 
-    this.vk.updates.on('message', this.sessionManager.middleware);
+    this.vk.updates.on('message', this.vkSessionManager.middleware);
 
     for (const middleware of this.middlewares)
       this.vk.updates.use(middleware.middleware);
 
-    this.vk.updates.on('message', this.hearManager.middleware);
+    this.vk.updates.on('message', this.vkHearManager.middleware);
 
     for (const command of this.commands)
-      this.hearManager.hear(command.trigger, command.handler);
+      this.vkHearManager.hear(command.trigger, command.handler);
 
     return this.vk.updates.start();
+  }
+
+  public startTelegram(): Promise<void> {
+    this.telegram.updates.on(
+      'message',
+      (
+        context: TelegramContext,
+        next: NextMiddleware
+      ): NextMiddlewareReturn => {
+        context.core = this;
+
+        return next();
+      }
+    );
+
+    this.telegram.updates.on('message', this.telegramSessionManager.middleware);
+
+    for (const middleware of this.middlewares)
+      this.telegram.updates.use(middleware.middleware);
+
+    this.telegram.updates.on('message', this.telegramHearManager.middleware);
+
+    for (const command of this.commands)
+      this.telegramHearManager.hear(command.trigger, command.handler);
+
+    return this.telegram.updates.startPolling();
   }
 }

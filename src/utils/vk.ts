@@ -1,5 +1,8 @@
 import { VK } from 'vk-io';
-import { token, userToken } from '@/config';
+import { vkToken, vkUserToken } from '@/config';
+import { Context, VKContext } from '@/core';
 
-export const vk = new VK({ token });
-export const userVK = new VK({ token: userToken });
+export const vk: VK = new VK({ token: vkToken });
+export const userVK: VK = new VK({ token: vkUserToken });
+
+export const isVK = (context: Context): context is VKContext => !context.from;

@@ -1,5 +1,9 @@
 import { Entity, Column, ObjectIdColumn, ObjectID } from 'typeorm';
 
+export enum UserType {
+  VK,
+  TELEGRAM
+}
 @Entity()
 export class User {
   /**
@@ -9,10 +13,15 @@ export class User {
   _id: ObjectID;
 
   /**
-   * ID пользователя в VK
+   * Тип пользователя
+   */
+  type: UserType;
+
+  /**
+   * ID пользователя
    */
   @Column()
-  vkId: number;
+  id: number;
 
   /**
    * Права пользователя
