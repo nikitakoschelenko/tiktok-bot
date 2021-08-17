@@ -27,7 +27,7 @@ export class User {
   lastSend: number = 0;
 
   /**
-   * Даты отправки TikTok'ов для выявления абьюзеров
+   * Таймстампы отправки тиктоков этим пользователем
    */
   @Column()
   timestamps: number[] = [];

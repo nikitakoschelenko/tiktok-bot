@@ -7,6 +7,7 @@ export const databaseURI: string = process.env.MONGO_URL || '';
 
 export const token: string = process.env.TOKEN || '';
 export const userToken: string = process.env.USER_TOKEN || '';
+export const widgetToken: string = process.env.WIDGET_TOKEN || '';
 export const groupId: number = Number.parseInt(process.env.GROUP_ID || '0');
 
 export const canUseJS: number[] = (process.env.CAN_USE_JS || '')

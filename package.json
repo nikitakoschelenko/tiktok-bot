@@ -20,12 +20,14 @@
     "dotenv": "^10.0.0",
     "middleware-io": "^2.8.0",
     "mongodb": "^3.6.9",
+    "node-cron": "^3.0.0",
     "typeorm": "^0.2.34",
     "vk-io": "^4.3.0"
   },
   "devDependencies": {
     "@types/common-tags": "^1.8.0",
     "@types/node": "^15.12.2",
+    "@types/node-cron": "^2.0.4",
     "@typescript-eslint/eslint-plugin": "^4.27.0",
     "@typescript-eslint/parser": "^4.27.0",
     "eslint": "^7.28.0",

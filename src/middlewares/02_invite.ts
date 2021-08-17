@@ -1,8 +1,7 @@
-import { MessageContext } from 'vk-io';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 import { stripIndents } from 'common-tags';
 
-import { Middleware } from '@/core';
+import { Context, Middleware } from '@/core';
 import { adminPeerId, groupId } from '@/config';
 import { vk } from '@/utils';
 import { UsersGetResponse } from 'vk-io/lib/api/schemas/responses';
@@ -13,9 +12,9 @@ import { UsersGetResponse } from 'vk-io/lib/api/schemas/responses';
  */
 export const inviteMiddleware = new Middleware({
   middleware: async (
-    context: MessageContext,
+    context: Context,
     next: NextMiddleware
-  ): Promise<MessageContext | NextMiddlewareReturn> => {
+  ): Promise<NextMiddlewareReturn | number> => {
     if (
       context.eventType !== 'chat_invite_user' ||
       context.eventMemberId !== -groupId
