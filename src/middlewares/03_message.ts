@@ -88,7 +88,10 @@ export const messageMiddleware = new Middleware({
         attachment.push(videoAttachment);
 
         // Делаем в конце, а то мало ли ссылка инвалид
-        videoLinks.push('https://tiktok.com' + res.request.path);
+        // Разработчики axios, видимо, не знают, что query не входит в path
+        videoLinks.push(
+          'https://tiktok.com' + (res.request.path as string).split('?')[0]
+        );
       } catch (e) {
         log.error(e);
 
@@ -127,13 +130,6 @@ export const messageMiddleware = new Middleware({
     await userRepository.save(context.user);
 
     for await (const videoLink of videoLinks) {
-      // Получаем сокращённую ссылку
-      const { short_url }: UtilsShortLink = await vk.api.utils
-        .getShortLink({
-          url: videoLink
-        })
-        .catch(() => ({}));
-
       // Вроде норм регекс
       const matches: RegExpMatchArray | null = videoLink.match(
         /\/(@.+)\/video\/(\d+)/
@@ -142,13 +138,24 @@ export const messageMiddleware = new Middleware({
 
       const options: Partial<TikTokVideo> = {
         author: matches[1],
-        videoId: matches[2],
-        link: short_url || videoLink
+        videoId: matches[2]
       };
 
       let tiktokVideo: TikTokVideo | undefined =
         await tiktokVideoRepository.findOne(options);
-      if (!tiktokVideo) tiktokVideo = new TikTokVideo(options);
+      if (!tiktokVideo) {
+        // Получаем сокращённую ссылку
+        const { short_url }: UtilsShortLink = await vk.api.utils
+          .getShortLink({
+            url: videoLink
+          })
+          .catch(() => ({}));
+
+        tiktokVideo = new TikTokVideo({
+          ...options,
+          link: short_url || videoLink
+        });
+      }
 
       tiktokVideo.timestamps.push(Date.now());
       await tiktokVideoRepository.save(tiktokVideo);

@@ -28,9 +28,7 @@ export default (): ScheduledTask =>
             text: 'Количество запросов'
           }
         ],
-        body: [],
-        more: 'Моя статистика (Скоро)',
-        more_url: `https://vk.com/public${groupId}?ref=widget` // TODO
+        body: []
       };
 
       const tiktokVideos: TikTokVideo[] = await tiktokVideoRepository.find({
