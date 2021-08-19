@@ -21,6 +21,12 @@ export class TikTokVideo {
   videoId: string;
 
   /**
+   * Описание видео
+   */
+  @Column()
+  description: string;
+
+  /**
    * Короткая ссылка на видео
    */
   @Column()

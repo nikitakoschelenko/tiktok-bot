@@ -17,6 +17,12 @@ import { TikTokVideo, User } from '@/entities';
 import { Logger, userVK, vk, widgetVK } from '@/utils';
 import { axiosConfig, groupId } from '@/config';
 
+type VideoData = {
+  link: string;
+  avatarUrl: string;
+  description: string;
+};
+
 const tiktokVideoRepository: MongoRepository<TikTokVideo> =
   getMongoRepository(TikTokVideo);
 const userRepository: MongoRepository<User> = getMongoRepository(User);
@@ -64,7 +70,7 @@ export const messageMiddleware = new Middleware({
         '⏰ Превышен лимит TikTok&#39;ов, попробуйте снова через минуту :3'
       );
 
-    const videoLinks: string[] = [];
+    const videoDatas: VideoData[] = [];
     const attachment: VideoAttachment[] = [];
 
     let isErrorOccured: boolean = false;
@@ -76,10 +82,10 @@ export const messageMiddleware = new Middleware({
         const res: AxiosResponse = await axios.get(url, axiosConfig);
         const html: string = res.data;
 
-        const part: string = html.split('"downloadAddr":"')[1];
-        const rawUrl: string = part.split('","shareCover":')[0];
-
-        const downloadUrl: string = rawUrl.replace(/\\u0026/g, '&');
+        const partDownloadUrl: string = html.split('"downloadAddr":"')[1];
+        const rawDownloadUrl: string =
+          partDownloadUrl.split('","shareCover":')[0];
+        const downloadUrl: string = rawDownloadUrl.replace(/\\u0026/g, '&');
 
         const video: AxiosResponse = await axios.get(downloadUrl, {
           ...axiosConfig,
@@ -94,11 +100,22 @@ export const messageMiddleware = new Middleware({
         });
         attachment.push(videoAttachment);
 
-        // Делаем в конце, а то мало ли ссылка инвалид
+        const partAvatarUrl: string = html.split('"avatarThumb":"')[1];
+        const rawAvatarUrl: string = partAvatarUrl.split('","signature":')[0];
+        const avatarUrl: string = rawAvatarUrl.replace(/\\u0026/g, '&');
+
+        const partDescription: string = html.split(
+          '"metaParams":{"title":"'
+        )[1];
+        const description: string = partDescription.split('","keywords":')[0];
+
         // Разработчики axios, видимо, не знают, что query не входит в path
-        videoLinks.push(
-          'https://tiktok.com' + (res.request.path as string).split('?')[0]
-        );
+        videoDatas.push({
+          link:
+            'https://tiktok.com' + (res.request.path as string).split('?')[0],
+          avatarUrl,
+          description
+        });
       } catch (e) {
         log.error(e);
 
@@ -136,9 +153,9 @@ export const messageMiddleware = new Middleware({
     context.user.timestamps.push(context.user.lastSend);
     await userRepository.save(context.user);
 
-    for await (const videoLink of videoLinks) {
+    for await (const videoData of videoDatas) {
       // Вроде норм регекс
-      const matches: RegExpMatchArray | null = videoLink.match(
+      const matches: RegExpMatchArray | null = videoData.link.match(
         /\/(@.+)\/video\/(\d+)/
       );
       if (!matches || matches.length !== 3) continue;
@@ -158,7 +175,7 @@ export const messageMiddleware = new Middleware({
           // Получаем сокращённую ссылку
           const { short_url }: UtilsShortLink = await vk.api.utils.getShortLink(
             {
-              url: videoLink
+              url: videoData.link
             }
           );
 
@@ -168,22 +185,10 @@ export const messageMiddleware = new Middleware({
         }
 
         try {
-          // Делаем запрос страницы с видео
-          const res: AxiosResponse = await axios.get(
-            `https://tiktok.com/${options.author}/video/${options.videoId}`,
-            axiosConfig
-          );
-          const html: string = res.data;
-
-          const part: string = html.split('"avatarThumb":"')[1];
-          const rawUrl: string = part.split('","signature":')[0];
-
-          const avatarUrl: string = rawUrl.replace(/\\u0026/g, '&');
-
           // fuck you
           // Часть кода честно украдена с https://github.com/negezor/vk-io
 
-          const imageRes: AxiosResponse = await axios.get(avatarUrl, {
+          const imageRes: AxiosResponse = await axios.get(videoData.avatarUrl, {
             ...axiosConfig,
             responseType: 'arraybuffer'
           });
@@ -231,19 +236,15 @@ export const messageMiddleware = new Middleware({
 
         tiktokVideo = new TikTokVideo({
           ...options,
+          description: videoData.description.slice(0, 20) + '...',
           link,
           icon
         });
       }
 
       // Фикс Race Condition
-
-      // tiktokVideo.timestamps.push(Date.now());
-      // await tiktokVideoRepository.save(tiktokVideo);
-
       // @ts-ignore
       delete tiktokVideo.timestamps;
-
       await tiktokVideoRepository.findOneAndUpdate(
         options,
         {

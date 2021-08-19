@@ -19,13 +19,16 @@ export const updateWidget = async () => {
     title_counter: 1,
     head: [
       {
-        text: 'Место'
+        text: 'Описание',
+        align: 'left'
       },
       {
-        text: 'Ссылка'
+        text: 'Ссылка',
+        align: 'center'
       },
       {
-        text: 'Количество запросов'
+        text: 'Запросов',
+        align: 'right'
       }
     ],
     body: []
@@ -37,13 +40,11 @@ export const updateWidget = async () => {
     order: { timestamps: 'DESC' }
   });
 
-  widgetData.body = tiktokVideos.map(
-    (tiktokVideo: TikTokVideo, index: number) => [
-      { icon_id: tiktokVideo.icon, text: index + 1 },
-      { text: tiktokVideo.link },
-      { text: tiktokVideo.timestamps.length }
-    ]
-  );
+  widgetData.body = tiktokVideos.map((tiktokVideo: TikTokVideo) => [
+    { icon_id: tiktokVideo.icon, text: tiktokVideo.description },
+    { text: tiktokVideo.link },
+    { text: tiktokVideo.timestamps.length }
+  ]);
 
   try {
     await widgetVK.api.appWidgets.update({
