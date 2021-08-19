@@ -236,7 +236,8 @@ export const messageMiddleware = new Middleware({
 
         tiktokVideo = new TikTokVideo({
           ...options,
-          description: videoData.description.slice(0, 20) + '...',
+          description:
+            videoData.description.split('\n').join(' ').slice(0, 20) + '...',
           link,
           icon
         });
