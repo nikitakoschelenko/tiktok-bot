@@ -27,6 +27,12 @@ export class TikTokVideo {
   link: string;
 
   /**
+   * Иконка (аватар канала)
+   */
+  @Column()
+  icon: string;
+
+  /**
    * Таймстампы отправки этого тиктока
    */
   @Column()

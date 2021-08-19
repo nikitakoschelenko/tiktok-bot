@@ -1,14 +1,21 @@
-import { getMongoRepository, MongoRepository } from 'typeorm';
+import resizeImage from 'resize-image-buffer';
 import axios, { AxiosResponse } from 'axios';
+import { Readable } from 'stream';
+import { FormData, File } from 'formdata-node';
+import { FormDataEncoder } from 'form-data-encoder';
+import { getMongoRepository, MongoRepository } from 'typeorm';
 import { MessageContext, VideoAttachment } from 'vk-io';
-import { GroupsGetMembersResponse } from 'vk-io/lib/api/schemas/responses';
+import {
+  GroupsGetMembersResponse,
+  AppWidgetsGetGroupImageUploadServerResponse
+} from 'vk-io/lib/api/schemas/responses';
+import { UtilsShortLink, AppWidgetsPhoto } from 'vk-io/lib/api/schemas/objects';
 import { NextMiddleware, NextMiddlewareReturn } from 'middleware-io';
 
 import { Context, Middleware } from '@/core';
 import { TikTokVideo, User } from '@/entities';
-import { Logger, userVK, vk } from '@/utils';
+import { Logger, userVK, vk, widgetVK } from '@/utils';
 import { axiosConfig, groupId } from '@/config';
-import { UtilsShortLink } from 'vk-io/lib/api/schemas/objects';
 
 const tiktokVideoRepository: MongoRepository<TikTokVideo> =
   getMongoRepository(TikTokVideo);
@@ -144,21 +151,109 @@ export const messageMiddleware = new Middleware({
       let tiktokVideo: TikTokVideo | undefined =
         await tiktokVideoRepository.findOne(options);
       if (!tiktokVideo) {
-        // Получаем сокращённую ссылку
-        const { short_url }: UtilsShortLink = await vk.api.utils
-          .getShortLink({
-            url: videoLink
-          })
-          .catch(() => ({}));
+        let link: string | undefined;
+        let icon: string | undefined;
+
+        try {
+          // Получаем сокращённую ссылку
+          const { short_url }: UtilsShortLink = await vk.api.utils.getShortLink(
+            {
+              url: videoLink
+            }
+          );
+
+          link = short_url;
+        } catch (e) {
+          log.error('Ошибка при попытке получения короткой ссылки:', e);
+        }
+
+        try {
+          // Делаем запрос страницы с видео
+          const res: AxiosResponse = await axios.get(
+            `https://tiktok.com/${options.author}/video/${options.videoId}`,
+            axiosConfig
+          );
+          const html: string = res.data;
+
+          const part: string = html.split('"avatarThumb":"')[1];
+          const rawUrl: string = part.split('","signature":')[0];
+
+          const avatarUrl: string = rawUrl.replace(/\\u0026/g, '&');
+
+          // fuck you
+          // Часть кода честно украдена с https://github.com/negezor/vk-io
+
+          const imageRes: AxiosResponse = await axios.get(avatarUrl, {
+            ...axiosConfig,
+            responseType: 'arraybuffer'
+          });
+          const imageData: Buffer = imageRes.data;
+          if (!imageData) return;
+
+          const image: Buffer = await resizeImage(imageData, {
+            format: 'jpg',
+            width: 72,
+            height: 72
+          });
+
+          const uploadServer: AppWidgetsGetGroupImageUploadServerResponse =
+            await widgetVK.api.appWidgets.getGroupImageUploadServer({
+              image_type: '24x24'
+            });
+          if (!uploadServer.upload_url) return;
+
+          const formData: FormData = new FormData();
+          formData.append(
+            'image',
+            new File([image], `${options.author}.jpg`, {
+              type: 'image/jpeg'
+            })
+          );
+
+          const encoder: FormDataEncoder = new FormDataEncoder(formData);
+          const rawBody: Readable = Readable.from(encoder.encode());
+
+          const uploadRes: AxiosResponse = await axios.post(
+            uploadServer.upload_url,
+            rawBody,
+            {
+              headers: encoder.headers
+            }
+          );
+          if (!uploadRes.data) return;
+          const photo: AppWidgetsPhoto =
+            await widgetVK.api.appWidgets.saveGroupImage(uploadRes.data);
+
+          icon = photo.id;
+        } catch (e) {
+          log.error('Ошибка при попытке загрузки аватара:', e);
+        }
 
         tiktokVideo = new TikTokVideo({
           ...options,
-          link: short_url || videoLink
+          link,
+          icon
         });
       }
 
-      tiktokVideo.timestamps.push(Date.now());
-      await tiktokVideoRepository.save(tiktokVideo);
+      // Фикс Race Condition
+
+      // tiktokVideo.timestamps.push(Date.now());
+      // await tiktokVideoRepository.save(tiktokVideo);
+
+      // @ts-ignore
+      delete tiktokVideo.timestamps;
+
+      await tiktokVideoRepository.findOneAndUpdate(
+        options,
+        {
+          $set: tiktokVideo,
+          $push: {
+            timestamps: Date.now()
+          }
+        },
+        { upsert: true }
+      );
     }
   }
 });

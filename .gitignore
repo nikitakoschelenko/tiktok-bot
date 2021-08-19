@@ -3,3 +3,5 @@ build
 
 .env
 .DS_STORE
+
+*.log

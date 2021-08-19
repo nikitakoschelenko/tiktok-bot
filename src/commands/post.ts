@@ -10,6 +10,9 @@ const log: Logger = new Logger('Post');
 export const postCommand = new Command({
   trigger: /^\/отложить ((?:\s|.)+)$/i,
   handler: async (context: Context) => {
+    // Недостаточно прав - игнорим
+    if (context.user.rights < 1) return;
+
     if (!context.replyMessage || context.replyMessage.senderId !== -groupId)
       return context.reply(
         '❗️ Ответьте на сообщение бота с видео, чтобы отложить пост в группу'
