@@ -34,17 +34,20 @@ export const updateWidget = async () => {
     body: []
   };
 
-  const tiktokVideos: TikTokVideo[] = await tiktokVideoRepository.find({
-    take: 10,
-    // Оказывается, что так можно... Напомню, что это массив
-    order: { timestamps: 'DESC' }
-  });
+  // База не умеет сортировать по количеству элементов в массиве, поэтому ручками
+  const tiktokVideos: TikTokVideo[] = await tiktokVideoRepository.find({});
 
-  widgetData.body = tiktokVideos.map((tiktokVideo: TikTokVideo) => [
-    { icon_id: tiktokVideo.icon, text: tiktokVideo.description },
-    { text: tiktokVideo.link },
-    { text: tiktokVideo.timestamps.length }
-  ]);
+  widgetData.body = tiktokVideos
+    .slice(0, 10)
+    .sort(
+      (a: TikTokVideo, b: TikTokVideo) =>
+        b.timestamps.length - a.timestamps.length
+    )
+    .map((tiktokVideo: TikTokVideo) => [
+      { icon_id: tiktokVideo.icon, text: tiktokVideo.description },
+      { text: tiktokVideo.link },
+      { text: tiktokVideo.timestamps.length }
+    ]);
 
   try {
     await widgetVK.api.appWidgets.update({
