@@ -29,7 +29,7 @@ export const jsCommand = new Command({
     } catch (e) {
       log.error(e);
 
-      return context.reply(`❗️ Ошибка: ${e.toString()}`);
+      return context.reply(`❗️ Ошибка: ${e}`);
     }
   }
 });
